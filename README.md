@@ -23,7 +23,7 @@ label = false data frame的第一列是否要列入。*這個功能挺廢的，�
 index = NULL為資料中要檢定的部分，若是NULL則為全部資料  
 
 ### ANOVA.twoway
-用於Experimental design的ANOVA
+用於Experimental design的ANOVA  
 (...)為資料，若沒給df東西則使用這裡的資料  
 buildin = false 為是否使用R內建的ANOVA  
 table = false 為是否使用table形式輸出（否則就是一串list）  
@@ -66,7 +66,7 @@ df = NULL 為使用的data frame，如果有東西就**只**使用這邊的資�
 index = c(1, 2) 把哪兩column視為因子  
 
 ### contingency_table
-給定一個二維矩陣，算出column與row的獨立性
+給定一個二維矩陣，算出column與row的獨立性  
 m 給定矩陣
 
 ## difference.R
@@ -124,9 +124,8 @@ period 期數
 
 ### draw_time_series
 畫出每個預測的趨勢圖  
-data list，裝著所有要畫的FORECAST物件  
+(...) 裝著要畫的FORECAST物件  
 color = c("black", "red", "blue", "green", "pink") 要使用的顏色，自動循環  
-(...) 多餘參數，目前無用  
 
 ### make_regression
 把迴歸物件轉換成趨勢物件  
@@ -141,13 +140,13 @@ y 預測值向量，最後一個值為未來一期的預測值
 x = NULL 原值向量，代表原始資料  
 
 ### mean_error
-計算趨勢的mean error  
+計算趨勢的mean error，**注意輸出結果的正負號可能與你想的不一樣**  
 x FORECAST物件  
 period = NULL 拿尾n期進行計算，若為NULL則拿預測值與原始值都有的期間來計算  
 ori = NULL 原始資料，若為NULL但x有原始資料則會拿x的原始資料  
 
 ### mean_percentage_error
-計算趨勢的mean percentage error  
+計算趨勢的mean percentage error，**注意輸出結果的正負號可能與你想的不一樣**  
 x FORECAST物件  
 period = NULL 拿尾n期進行計算，若為NULL則拿預測值與原始值都有的期間來計算  
 ori = NULL 原始資料，若為NULL但x有原始資料則會拿x的原始資料  
@@ -171,7 +170,7 @@ period = NULL 拿尾n期進行計算，若為NULL則拿預測值與原始值都�
 ori = NULL 原始資料，若為NULL但x有原始資料則會拿x的原始資料  
 
 ### compare_forecast
-比較一串趨勢物件個別的誤差  
-data list，裝著所有要比較的FORECAST物件  
+比較一串趨勢物件個別的誤差，**注意ME MPE輸出結果的正負號可能與你想的不一樣**  
+(...) 裝著要畫的FORECAST物件  
 
 # 待補充...

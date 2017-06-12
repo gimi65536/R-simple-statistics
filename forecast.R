@@ -46,6 +46,7 @@ summary.FORECAST = function(x, newline = FALSE, ...){
 		}
 	}
 	names(sol)[3] = "type_of_forecasting"
+	names(sol)[4] = "forecasting period"
 	class(sol) = "summary.FORECAST"
 	return(sol[-2])
 }
@@ -59,7 +60,7 @@ average_value = function(x){
 		accu = accu + x[i]
 	}
 	sol["Forecast", length(x) + 1] = accu / length(x)
-	sol = list(solution = as.table(sol), parameter = NULL, sign = "Average")
+	sol = list(solution = as.table(sol), parameter = NULL, sign = "Average", period = 1)
 	class(sol) = "FORECAST"
 	return(sol)
 }
@@ -73,7 +74,7 @@ moving_average = function(x, period = 3){
 	for(i in 1:(length(x) - period + 1)){
 		sol["Forecast", period + i] = sum(x[i:(i + period - 1)]) / period
 	}
-	sol = list(solution = as.table(sol), parameter = c(period = period), sign = "Moving")
+	sol = list(solution = as.table(sol), parameter = c(period = period), sign = "Moving", period = 1)
 	class(sol) = "FORECAST"
 	return(sol)
 }
@@ -85,7 +86,7 @@ exponential_smoothing = function(x, alpha = 0.2){
 	for(i in 2:(length(x) + 1)){
 		sol["Forecast", i] = alpha * x[i - 1] + (1 - alpha) * sol["Forecast", i - 1]
 	}
-	sol = list(solution = as.table(sol), parameter = c(alpha = alpha), sign = "Exponent")
+	sol = list(solution = as.table(sol), parameter = c(alpha = alpha), sign = "Exponent", period = 1)
 	class(sol) = "FORECAST"
 	return(sol)
 }
@@ -103,7 +104,7 @@ holt_exponential_smoothing = function(x, alpha = 0.9, beta = 0.8, ET0 = 1, F0 = 
 		sol["ET", i] = beta * sol["LT", i] + (1 - beta) * sol["ET", i - 1]
 	}
 	sol["Forecast", "forecast"] = alpha * x[n + 1] + (1 - alpha) * sol["Forecast", n + 1] + sol["ET", n + 1]
-	sol = list(solution = as.table(sol), parameter = c(alpha = alpha, beta = beta, ET0 = ET0, F0 = F0, X0 = X0), sign = "Holt\'s")
+	sol = list(solution = as.table(sol), parameter = c(alpha = alpha, beta = beta, ET0 = ET0, F0 = F0, X0 = X0), sign = "Holt\'s", period = 1)
 	class(sol) = "FORECAST"
 	return(sol)
 }
@@ -147,7 +148,8 @@ find_ori = function(data){
 	return(list(data = data, ori = ori))
 }
 
-draw_time_series = function(data, color = c("black", "red", "blue", "green", "pink"), ...){
+draw_time_series = function(..., color = c("black", "red", "blue", "green", "pink")){
+	data = list(...)
 	t = find_ori(data)
 	data = t$data
 	ori = t$ori
@@ -171,8 +173,12 @@ draw_time_series = function(data, color = c("black", "red", "blue", "green", "pi
 			}
 			breaks = append(breaks, sign)
 			v = na.omit(v)
-			start = n - length(v) + 2
-			a = aes_string(x = start:(n + 1), y = v, colour = shQuote(sign)) #!!!aes_string instead of aes!!!!
+			start = n - length(v) + 1
+			here = 1
+			if(class(i) == "FORECAST"){
+				here = i$period
+			}
+			a = aes_string(x = (start + here):(n + here), y = v, colour = shQuote(sign)) #!!!aes_string instead of aes!!!!
 			g = g + geom_line(a) + geom_point(a)
 		}
 	}
@@ -185,7 +191,7 @@ draw_time_series = function(data, color = c("black", "red", "blue", "green", "pi
 	return(g)
 }
 
-make_regression = function(lm, var, range, ...){
+make_regression = function(lm, var, range, ..., period = 1){
 	data = data.frame(...)
 	if(length(data) > 0){
 		l = length(range) - 1
@@ -207,20 +213,20 @@ make_regression = function(lm, var, range, ...){
 		x = append(x, lm$model[index[1], 1])
 	}
 	if(length(x) == length(range) - 1){
-		sol = matrix(ncol = length(y), nrow = 2, dimnames = list(c("x", "Forecast"), c(1:(length(y) - 1), "forecast")))
+		sol = matrix(ncol = length(y), nrow = 2, dimnames = list(c("x", "Forecast"), c(1:(length(y) - period), rep_len("forecast", period))))
 		sol["x", ] = c(x, NA)
 		sol["Forecast", ] = y
 	}else{
-		sol = matrix(y, ncol = length(y), nrow = 1, dimnames = list(c("Forecast"), c(1:(length(y) - 1), "forecast")))
+		sol = matrix(y, ncol = length(y), nrow = 1, dimnames = list(c("Forecast"), c(1:(length(y) - period), rep_len("forecast", period))))
 	}
-	sol = list(solution = as.table(sol), parameter = c(lm.call = as.character(lm$call)[2]), sign = "Linear Regression")
+	sol = list(solution = as.table(sol), parameter = c(lm.call = as.character(lm$call)[2]), sign = "Linear Regression", period = period)
 	class(sol) = "FORECAST"
 	return(sol)
 }
 
-make_package = function(y, x = NULL){
+make_package = function(y, x = NULL, period = 1){
 	if(is.null(x)){
-		sol = matrix(y, ncol = length(y), nrow = 1, dimnames = list(c("Forecast"), c(1:(length(y) - 1), "forecast")))
+		sol = matrix(y, ncol = length(y), nrow = 1, dimnames = list(c("Forecast"), c(1:(length(y) - period), rep_len("forecast", period))))
 	}else{
 		y_cover = length(y) - 1
 		n = length(x)
@@ -234,9 +240,9 @@ make_package = function(y, x = NULL){
 		}else{
 			y = c(rep_len(NA, n - y_cover), y)
 		}
-		sol = matrix(c(x, y), byrow = TRUE, ncol = ncol + 1, nrow = 2, dimnames = list(c("x", "Forecast"), c(start:(start + ncol - 1), "forecast")))
+		sol = matrix(c(x, y), byrow = TRUE, ncol = ncol + 1, nrow = 2, dimnames = list(c("x", "Forecast"), c(start:(start + ncol - period), rep_len("forecast", period))))
 	}
-	sol = list(solution = as.table(sol), parameter = NULL, sign = "User-defined package")
+	sol = list(solution = as.table(sol), parameter = NULL, sign = "User-defined package", period = period)
 	class(sol) = "FORECAST"
 	return(sol)
 }
@@ -254,9 +260,9 @@ select_data = function(x, period = NULL, ori = NULL){
 	}else{
 		data = x$solution["Forecast", ]
 	}
+	data = subset(data, names(data) != "forecast")
 	ori = na.omit(ori)
 	data = na.omit(data)
-	data = data[-length(data)]
 	if(is.null(period) || period > length(ori)){
 		period = length(ori)
 	}
@@ -310,7 +316,8 @@ mean_absolute_percentage_error = function(x, period = NULL, ori = NULL){
 	return(mean(abs(t$ori - t$data) / t$ori))
 }
 
-compare_forecast = function(data){
+compare_forecast = function(...){
+	data = list(...)
 	t = find_ori(data)
 	data = t$data
 	ori = t$ori
@@ -321,29 +328,33 @@ compare_forecast = function(data){
 			accu = accu + 1
 			sign = ""
 			if(class(i) == "FORECAST"){
-				l[[accu]] = i$solution["Forecast", ]
+				x = i$solution["Forecast", ]
+				x = subset(x, names(x) != "forecast")
+				l[[accu]] = x
 				sign = summary(i)$type_of_forecasting
 			}else{
 				l[[accu]] = i
+				l[[accu]] = l[[accu]][-length(l[[accu]])]
 				sign = paste("No.", accu, "data")
 			}
 			names(l)[accu] = sign
 		}
 	}
-	len = length(l[[1]])
+	len = length(na.omit(l[[1]]))
 	for(i in 2:accu){
 		if(len > length(na.omit(l[[i]]))){
 			len = length(na.omit(l[[i]]))
 		}
 	}
-	if(len > length(x) + 1){
-		len = length(x) + 1
+	if(len > length(ori)){
+		len = length(ori)
 	}
+	print(len)
 	sol = matrix(nrow = length(l), ncol = 5, dimnames = list(names(l), c("ME", "MPE", "MAD", "MSE", "MAPE")))
-	sol[, 1] = sapply(l, mean_error, period = len - 1, ori = ori)
-	sol[, 2] = sapply(l, mean_percentage_error, period = len - 1, ori = ori)
-	sol[, 3] = sapply(l, mean_absolute_deviation, period = len - 1, ori = ori)
-	sol[, 4] = sapply(l, mean_square_error, period = len - 1, ori = ori)
-	sol[, 5] = sapply(l, mean_absolute_percentage_error, period = len - 1, ori = ori)
+	sol[, 1] = sapply(l, mean_error, period = len, ori = ori)
+	sol[, 2] = sapply(l, mean_percentage_error, period = len, ori = ori)
+	sol[, 3] = sapply(l, mean_absolute_deviation, period = len, ori = ori)
+	sol[, 4] = sapply(l, mean_square_error, period = len, ori = ori)
+	sol[, 5] = sapply(l, mean_absolute_percentage_error, period = len, ori = ori)
 	return(as.table(sol))
 }
