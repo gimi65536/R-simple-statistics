@@ -160,6 +160,9 @@ find_ori = function(data){
 			ori = i$solution["x", ]
 			ori = na.omit(ori)
 			break
+		}else if(class(i) == "CMA"){
+			ori = i$x
+			ori = na.omit(ori)
 		}
 	}
 	if(length(ori) == 0){
@@ -189,6 +192,9 @@ draw_time_series = function(..., color = c("black", "red", "blue", "green", "pin
 			if(class(i) == "FORECAST"){
 				v = i$solution["Forecast", ]
 				sign = summary(i, newline = TRUE)$type_of_forecasting
+			}else if(class(i) == "CMA"){
+				v = i$average
+				sign = summary(i, newline = TRUE)
 			}else{
 				v = i
 				sign = paste("No.", accu, "data")
@@ -199,6 +205,8 @@ draw_time_series = function(..., color = c("black", "red", "blue", "green", "pin
 			here = 1
 			if(class(i) == "FORECAST"){
 				here = i$period
+			}else if(class(i) == "CMA"){
+				here = sum(!is.na(x)) - length(ori)
 			}
 			a = aes_string(x = (start + here):(n + here), y = v, colour = shQuote(sign)) #!!!aes_string instead of aes!!!!
 			g = g + geom_line(a) + geom_point(a)
@@ -401,7 +409,7 @@ centered_moving_average = function(x, period){
 	blank = (length(x) - length(v)) / 2
 	sol[["average"]] = c(rep_len(NA, blank), v, rep_len(NA, blank))
 	names(sol[["average"]]) = 1:length(x)
-	sol[[period]] = period
+	sol[["period"]] = period
 	class(sol) = "CMA"
 	return(sol)
 }
@@ -412,4 +420,31 @@ print.CMA = function(x){
 
 mean.CMA = function(x){
 	return(mean(x$x, na.rm = TRUE))
+}
+
+summary.CMA = function(x, newline = FALSE, ...){
+	sol = ""
+	if(newline){
+		sol = paste("CMA for\nperiod =", x$period)
+	}else{
+		sol = paste("CMA for period =", x$period)
+	}
+	class(sol) = "summary.CMA"
+	return(sol)
+}
+
+seasonal_index = function(x, ...){
+	UseMethod("seasonal_index")
+}
+
+seasonal_index.CMA = function(x){
+	effect = x$x / x$average
+	tmp = 1:length(x$x)
+	ind = vector(length = x$period)
+	for(i in 1:x$period){
+		y = effect[tmp %% x$period == i %% x$period]
+		ind[i] = mean(y, na.rm = TRUE)
+	}
+	ind = ind / sum(ind) * x$period
+	return(ind)
 }

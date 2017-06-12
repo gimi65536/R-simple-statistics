@@ -125,7 +125,7 @@ period 期數
 
 ### draw_time_series
 畫出每個預測的趨勢圖  
-(...) 裝著要畫的FORECAST物件  
+(...) 裝著要畫的FORECAST等物件  
 color = c("black", "red", "blue", "green", "pink") 要使用的顏色，自動循環  
 
 ### make_regression
@@ -180,5 +180,10 @@ ori = NULL 原始資料，若為NULL但x有原始資料則會拿x的原始資料
 計算資料的中央移動平均，回傳"CMA"物件  
 x 給定資料  
 period 要計算的是幾期的中央移動平均  
+
+### seasonal_index
+給定一組CMA資料，算出季節性因子，*日後還會有lm的版本*  
+#### seasonal_index.CMA
+x 給定CMA物件  
 
 # 待補充...
