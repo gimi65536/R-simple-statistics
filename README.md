@@ -17,7 +17,7 @@ index = NULL為資料中要檢定的部分，若是NULL則為全部資料
 資料輸入方法與ANOVA.oneway相同，以one way ANOVA的結果來檢測兩筆資料的差異是否顯著。  
 (...)為資料，若沒給df東西則使用這裡的資料  
 alpha = 0.05 顯著水準
-way = "LSD" 使用哪種方法檢測差異。接受的輸入有"LSD" "Bonferroni" "Tukey"。*函數的寫法需要修正，使用match.arg才是建議方法*  
+way = "LSD" 使用哪種方法檢測差異。接受的輸入有"LSD" "Bonferroni" "Tukey"  
 df = NULL 為使用的data frame，如果有東西就**只**使用這邊的資料，否則使用(...)的資料  
 label = false data frame的第一列是否要列入。*這個功能挺廢的，或許當初在寫的時候有什麼特殊需求吧？*  
 index = NULL為資料中要檢定的部分，若是NULL則為全部資料  
@@ -77,14 +77,14 @@ m 給定矩陣
 x1 第一筆資料  
 x2 第二筆資料  
 ratio = 1 虛無假設中 x1的變異數/x2的變異數 等於 ratio  
-alternative = "two.sided" H1的描述是變異數比例大於(greater)/小於(less)/不等於(two.sided) ratio *函數的寫法需要修正，使用match.arg才是建議方法*  
+alternative = "two.sided" H1的描述是變異數比例大於(greater)/小於(less)/不等於(two.sided) ratio  
 
 ### mean_differ
 檢測兩筆資料的平均數是否為difference
 x1 第一筆資料  
 x2 第二筆資料  
 difference = 0 虛無假設中 x1的平均數/x2的平均數 等於 difference  
-alternative = "two.sided" H1的描述是變異數比例大於(greater)/小於(less)/不等於(two.sided) ratio *函數的寫法需要修正，使用match.arg才是建議方法*  
+alternative = "two.sided" H1的描述是變異數比例大於(greater)/小於(less)/不等於(two.sided) ratio  
 alpha = 0.05 在檢定兩資料變異數是否相等時要用多少的顯著水準  
 
 ## forecast.R
@@ -133,11 +133,13 @@ lm 迴歸物件，也就是內建函數lm輸出的物件，"lm"型態
 var 會更動的自變數「名稱」  
 range 自變數的值  
 (...) 輸入其他固定的自變數的值  
+period = 1 向前預測幾期  
 
 ### make_package
 把資料轉成趨勢物件  
 y 預測值向量，最後一個值為未來一期的預測值  
-x = NULL 原值向量，代表原始資料  
+x = NULL 原值向量，代表原始資料    
+period = 1 向前預測幾期  
 
 ### mean_error
 計算趨勢的mean error，**注意輸出結果的正負號可能與你想的不一樣**  

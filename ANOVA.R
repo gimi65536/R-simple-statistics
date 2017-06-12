@@ -184,7 +184,8 @@ BartlettTest = function(..., buildin = FALSE, table = FALSE, df = NULL, index = 
 	return (sol)
 }
 
-cross_differ = function(..., alpha = 0.05, way = "LSD", df = NULL, label = FALSE, index = NULL){
+cross_differ = function(..., alpha = 0.05, way = c("LSD", "Bonferroni", "Tukey"), df = NULL, label = FALSE, index = NULL){
+	way = match.arg(way)
 	if(is.null(df)){
 		data = ANOVA.oneway(..., table = FALSE, index = index)
 		name = getName(list(...))
@@ -354,7 +355,8 @@ ANOVA.twoway = function(..., buildin = FALSE, table = FALSE, df = NULL, label = 
 	return (sol)
 }
 
-cross_differ_twoway = function(..., alpha = 0.05, way = "LSD", df = NULL, label = FALSE, index = NULL){
+cross_differ_twoway = function(..., alpha = 0.05, way = c("LSD", "Bonferroni", "Tukey"), df = NULL, label = FALSE, index = NULL){
+	way = match.arg(way)
 	blockName = NULL
 	if(is.null(df)){
 		data = ANOVA.twoway(..., table = FALSE, index = index)

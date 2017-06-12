@@ -1,7 +1,5 @@
-ftest = function(x1, x2, ratio = 1, alternative = "two.sided"){
-	if(alternative != "greater" && alternative != "less" && alternative != "two.sided"){
-		alternative = "two.sided"
-	}
+ftest = function(x1, x2, ratio = 1, alternative = c("two.sided", "greater", "less")){
+	alternative = match.arg(alternative)
 	x1 = x1[!is.na(x1)]
 	x2 = x2[!is.na(x2)]
 	n = c(length(x1), length(x2))
@@ -20,10 +18,8 @@ ftest = function(x1, x2, ratio = 1, alternative = "two.sided"){
 	return(as.table(sol))
 }
 
-mean_differ = function(x1, x2, difference = 0, alternative = "two.sided", alpha = 0.05){
-	if(alternative != "greater" && alternative != "less" && alternative != "two.sided"){
-		alternative = "two.sided"
-	}
+mean_differ = function(x1, x2, difference = 0, alternative = c("two.sided", "greater", "less"), alpha = 0.05){
+	alternative = match.arg(alternative)
 	x1 = x1[!is.na(x1)]
 	x2 = x2[!is.na(x2)]
 	n = c(length(x1), length(x2))
