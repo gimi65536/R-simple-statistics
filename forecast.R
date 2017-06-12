@@ -51,7 +51,26 @@ summary.FORECAST = function(x, newline = FALSE, ...){
 	return(sol[-2])
 }
 
+mean.FORECAST = function(x){
+	return(mean(x$solution["Forecast", ], na.rm = TRUE))
+}
+
+data_filt = function(x){
+	if(class(x) == "FORECAST"){
+		if(sum(dimnames(x$solution)[[1]] == "x") == 0){
+			return(NULL)
+		}else{
+			x = x$solution["x", ]
+		}
+	}else if(class(x) == "CMA"){
+		x = x$x
+	}
+	x = subset(x, !is.na(x))
+	return(x)
+}
+
 average_value = function(x){
+	x = data_filt(x)
 	sol = matrix(ncol = length(x) + 1, nrow = 2, dimnames = list(c("x", "Forecast"), c(1:length(x), "forecast")))
 	sol["x", ] = c(x, NA)
 	accu = x[1]
@@ -66,6 +85,7 @@ average_value = function(x){
 }
 
 moving_average = function(x, period = 3){
+	x = data_filt(x)
 	if(length(x) <= period){
 		return (NULL)
 	}
@@ -80,6 +100,7 @@ moving_average = function(x, period = 3){
 }
 
 exponential_smoothing = function(x, alpha = 0.2){
+	x = data_filt(x)
 	sol = matrix(ncol = length(x) + 1, nrow = 2, dimnames = list(c("x", "Forecast"), c(1:length(x), "forecast")))
 	sol["x", ] = c(x, NA)
 	sol["Forecast", 1] = x[1]
@@ -92,6 +113,7 @@ exponential_smoothing = function(x, alpha = 0.2){
 }
 
 holt_exponential_smoothing = function(x, alpha = 0.9, beta = 0.8, ET0 = 1, F0 = mean(x), X0 = F0){
+	x = data_filt(x)
 	n = length(x)
 	sol = matrix(ncol = n + 2, nrow = 4, dimnames = list(c("x", "Forecast", "LT", "ET"), c(0:n, "forecast")))
 	sol["x", ] = c(NA, x, NA)
@@ -351,10 +373,43 @@ compare_forecast = function(...){
 	}
 	print(len)
 	sol = matrix(nrow = length(l), ncol = 5, dimnames = list(names(l), c("ME", "MPE", "MAD", "MSE", "MAPE")))
-	sol[, 1] = sapply(l, mean_error, period = len, ori = ori)
-	sol[, 2] = sapply(l, mean_percentage_error, period = len, ori = ori)
-	sol[, 3] = sapply(l, mean_absolute_deviation, period = len, ori = ori)
-	sol[, 4] = sapply(l, mean_square_error, period = len, ori = ori)
+	sol[, 1] = sapply(l, mean_error,                     period = len, ori = ori)
+	sol[, 2] = sapply(l, mean_percentage_error,          period = len, ori = ori)
+	sol[, 3] = sapply(l, mean_absolute_deviation,        period = len, ori = ori)
+	sol[, 4] = sapply(l, mean_square_error,              period = len, ori = ori)
 	sol[, 5] = sapply(l, mean_absolute_percentage_error, period = len, ori = ori)
 	return(as.table(sol))
+}
+
+centered_moving_average = function(x, period){
+	x = data_filt(x)
+	sol = list()
+	x = na.omit(x)
+	v = vector(length = length(x) + 1 - period)
+	start = 0
+	while(start + period <= length(x)){
+		v[start + 1] = mean(x[(start + 1):(start + period)])
+		start = start + 1
+	}
+	if(period %% 2 == 0){
+		tmp = c(v, 0)
+		tmp = tmp[-1]
+		v = (v + tmp) / 2
+		v = v[-length(v)]
+	}
+	sol[["x"]] = x
+	blank = (length(x) - length(v)) / 2
+	sol[["average"]] = c(rep_len(NA, blank), v, rep_len(NA, blank))
+	names(sol[["average"]]) = 1:length(x)
+	sol[[period]] = period
+	class(sol) = "CMA"
+	return(sol)
+}
+
+print.CMA = function(x){
+	print(as.table(x$average))
+}
+
+mean.CMA = function(x){
+	return(mean(x$x, na.rm = TRUE))
 }

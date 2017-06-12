@@ -89,7 +89,8 @@ alpha = 0.05 在檢定兩資料變異數是否相等時要用多少的顯著水�
 
 ## forecast.R
 **繪圖時需要ggplot2**  
-**使用自定義的"FORECAST"類型物件**  
+**使用自定義的"FORECAST"與"CMA"類型物件**  
+**在使用除迴歸之外的預測模式時，可以輸入"FORECAST"或"CMA"物件，將會提取物件中的「原始資料」做預測，方便比對預測模型的差異**  
 **尚未寫出季節性趨勢**  
 
 ### average_value
@@ -109,7 +110,7 @@ x 資料
 alpha = 0.2  
 
 ### holt_exponential_smoothing
-算出資料使用Holt's exponential smoothing方法算出來的預測值  
+算出資料使用Holt's exponential smoothing方法算出來的預測值。**如果給定的資料是趨勢物件，F0的預設值就會是「預測值的平均」而非原始值的平均**  
 x 資料  
 alpha = 0.9  
 beta = 0.8  
@@ -174,5 +175,10 @@ ori = NULL 原始資料，若為NULL但x有原始資料則會拿x的原始資料
 ### compare_forecast
 比較一串趨勢物件個別的誤差，**注意ME MPE輸出結果的正負號可能與你想的不一樣**  
 (...) 裝著要畫的FORECAST物件  
+
+### centered_moving_average
+計算資料的中央移動平均，回傳"CMA"物件  
+x 給定資料  
+period 要計算的是幾期的中央移動平均  
 
 # 待補充...
