@@ -131,20 +131,32 @@ holt_exponential_smoothing = function(x, alpha = 0.9, beta = 0.8, ET0 = 1, F0 = 
 	return(sol)
 }
 
-holt_forecast = function(x, period){
-	if(class(x) != "FORECAST" || x$sign != "Holt\'s" || period <= 0){
+forecast = function(x, period){
+	if(class(x) != "FORECAST" || period <= 0){
 		return(NULL)
 	}
-	param = x$parameter
-	x = x$solution
-	n = ncol(x) - 2
-	nowx = x["x", n + 1]
-	nowf = x["Forecast", n + 1]
-	nowET = x["ET", n + 1]
-	alpha = param["alpha"]
-	sol = alpha * nowx + (1 - alpha) * nowf + period * nowET
-	names(sol) = NULL
-	return(sol)
+	if(x$sign == "Holt\'s"){
+		param = x$parameter
+		x = x$solution
+		n = ncol(x) - 2
+		nowx = x["x", n + 1]
+		nowf = x["Forecast", n + 1]
+		nowET = x["ET", n + 1]
+		alpha = param["alpha"]
+		sol = alpha * nowx + (1 - alpha) * nowf + period * nowET
+		names(sol) = NULL
+		return(sol)
+	}#else if(){}
+	else{
+		f = x$solution["Forecast", ]
+		f = subset(f, names(f) == "forecast")
+		if(length(f) < period){
+			return(NULL)
+		}
+		sol = f[period]
+		names(sol) = NULL
+		return(sol)
+	}
 }
 
 find_ori = function(data){
@@ -249,7 +261,7 @@ make_regression = function(lm, var, range, ..., period = 1){
 	}else{
 		sol = matrix(y, ncol = length(y), nrow = 1, dimnames = list(c("Forecast"), c(1:(length(y) - period), rep_len("forecast", period))))
 	}
-	sol = list(solution = as.table(sol), parameter = c(lm.call = as.character(lm$call)[2]), sign = "Linear Regression", period = period)
+	sol = list(solution = as.table(sol), parameter = lm, sign = "Linear Regression", period = period)
 	class(sol) = "FORECAST"
 	return(sol)
 }
