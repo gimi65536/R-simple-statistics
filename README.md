@@ -80,7 +80,7 @@ ratio = 1 虛無假設中 x1的變異數/x2的變異數 等於 ratio
 alternative = "two.sided" H1的描述是變異數比例大於(greater)/小於(less)/不等於(two.sided) ratio  
 
 ### mean_differ
-檢測兩筆資料的平均數是否為difference
+檢測兩筆資料的平均數是否為difference  
 x1 第一筆資料  
 x2 第二筆資料  
 difference = 0 虛無假設中 x1的平均數/x2的平均數 等於 difference  
@@ -118,9 +118,9 @@ ET0 = 1
 F0 = mean(x) 假定第零期的預測值  
 X0 = F0 假定第零期的資料  
 
-### holt_forecast
-算出使用Holt's exponential smoothing方法算出來的n期後預測值  
-x holt_exponential_smoothing函數輸出的物件  
+### forecast
+算出n期後預測值，對Holt's exponential smoothing方法而言是算出來的n期後預測值，對其他方法而言單純是印出預測期間內的第幾期預測值  
+x 趨勢物件  
 period 期數  
 
 ### draw_time_series
