@@ -189,11 +189,11 @@ x 給定lm物件
 period 期數(因為lm物件不自帶period參數)  
 
 ### seasonal_effect
-利用季節性因子做出預測  
+利用季節性因子做出預測。**需要注意的是第一步驟與第二步驟使用的lm都是簡單線性迴歸，若認為後者不該使用簡單線性迴歸，則請提取回傳值當中，$solution["deseasonal", ]的資料，手動。**  
 x 給定資料  
 season.period 季節大小  
 index = c("CMA", "lm") 用什麼方法算出季節性因子  
-forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential") 要如何預測後幾期的解季節性因子預測值  
+forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential") 要如何預測後幾期的解季節性資料預測值  
 (...) 在預測後幾期時所要運用的參數  
 
 # 待補充...

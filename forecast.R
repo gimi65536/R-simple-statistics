@@ -403,7 +403,6 @@ compare_forecast = function(...){
 	if(len > length(ori)){
 		len = length(ori)
 	}
-	print(len)
 	sol = matrix(nrow = length(l), ncol = 5, dimnames = list(names(l), c("ME", "MPE", "MAD", "MSE", "MAPE")))
 	sol[, 1] = sapply(l, mean_error,                     period = len, ori = ori)
 	sol[, 2] = sapply(l, mean_percentage_error,          period = len, ori = ori)
