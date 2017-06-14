@@ -16,7 +16,7 @@ index = NULL為資料中要檢定的部分，若是NULL則為全部資料
 ### cross_differ
 資料輸入方法與ANOVA.oneway相同，以one way ANOVA的結果來檢測兩筆資料的差異是否顯著。  
 (...)為資料，若沒給df東西則使用這裡的資料  
-alpha = 0.05 顯著水準
+alpha = 0.05 顯著水準  
 way = "LSD" 使用哪種方法檢測差異。接受的輸入有"LSD" "Bonferroni" "Tukey"  
 df = NULL 為使用的data frame，如果有東西就**只**使用這邊的資料，否則使用(...)的資料  
 label = false data frame的第一列是否要列入。*這個功能挺廢的，或許當初在寫的時候有什麼特殊需求吧？*  
@@ -80,7 +80,7 @@ ratio = 1 虛無假設中 x1的變異數/x2的變異數 等於 ratio
 alternative = "two.sided" H1的描述是變異數比例大於(greater)/小於(less)/不等於(two.sided) ratio  
 
 ### mean_differ
-檢測兩筆資料的平均數是否為difference
+檢測兩筆資料的平均數是否為difference  
 x1 第一筆資料  
 x2 第二筆資料  
 difference = 0 虛無假設中 x1的平均數/x2的平均數 等於 difference  
@@ -91,7 +91,6 @@ alpha = 0.05 在檢定兩資料變異數是否相等時要用多少的顯著水�
 **繪圖時需要ggplot2**  
 **使用自定義的"FORECAST"與"CMA"類型物件**  
 **在使用除迴歸之外的預測模式時，可以輸入"FORECAST"或"CMA"物件，將會提取物件中的「原始資料」做預測，方便比對預測模型的差異**  
-**尚未寫出季節性趨勢**  
 
 ### average_value
 算出資料使用average value方法算出來的預測值  
@@ -118,9 +117,9 @@ ET0 = 1
 F0 = mean(x) 假定第零期的預測值  
 X0 = F0 假定第零期的資料  
 
-### holt_forecast
-算出使用Holt's exponential smoothing方法算出來的n期後預測值  
-x holt_exponential_smoothing函數輸出的物件  
+### forecast
+算出n期後預測值，對Holt's exponential smoothing方法與季節性lm而言是算出來的n期後預測值，對其他方法而言單純是印出預測期間內的第幾期預測值。**注意自製lm趨勢物件是無法這樣預測的，請自行使用predict**  
+x 趨勢物件  
 period 期數  
 
 ### draw_time_series
@@ -138,7 +137,7 @@ period = 1 向前預測幾期
 
 ### make_package
 把資料轉成趨勢物件  
-y 預測值向量，最後一個值為未來一期的預測值  
+y 預測值向量，最後n個值為未來n期的預測值  
 x = NULL 原值向量，代表原始資料    
 period = 1 向前預測幾期  
 
@@ -182,8 +181,19 @@ x 給定資料
 period 要計算的是幾期的中央移動平均  
 
 ### seasonal_index
-給定一組CMA資料，算出季節性因子，*日後還會有lm的版本*  
+給定一組CMA資料，算出季節性因子  
 #### seasonal_index.CMA
 x 給定CMA物件  
+#### seasonal_index.lm
+x 給定lm物件  
+period 期數(因為lm物件不自帶period參數)  
+
+### seasonal_effect
+利用季節性因子做出預測。**需要注意的是第一步驟與第二步驟使用的lm都是簡單線性迴歸，若認為後者不該使用簡單線性迴歸，則請提取回傳值當中，$solution["deseasonal", ]的資料，手動。**  
+x 給定資料  
+season.period 季節大小  
+index = c("CMA", "lm") 用什麼方法算出季節性因子  
+forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential") 要如何預測後幾期的解季節性資料預測值  
+(...) 在預測後幾期時所要運用的參數  
 
 # 待補充...
