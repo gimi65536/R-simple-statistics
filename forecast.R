@@ -44,6 +44,12 @@ summary.FORECAST = function(x, newline = FALSE, ...){
 		}else{
 			sol$sign = "Average Value"
 		}
+	}else if(sol$sign == "Seasonal"){
+		if(newline){
+			sol$sign = paste("Seasonal\nforecasting\nwith", sol["index"], "\nand", sol["forecast.way"], "\nfor period =", sol$period)
+		}else{
+			sol$sign = paste("Seasonal forecasting with", sol["index"], "and", sol["forecast.way"], "for period =", sol$period)
+		}
 	}
 	names(sol)[3] = "type_of_forecasting"
 	names(sol)[4] = "forecasting period"
@@ -126,16 +132,7 @@ holt_exponential_smoothing = function(x, alpha = 0.9, beta = 0.8, ET0 = 1, F0 = 
 		sol["ET", i] = beta * sol["LT", i] + (1 - beta) * sol["ET", i - 1]
 	}
 	sol["Forecast", "forecast"] = alpha * x[n + 1] + (1 - alpha) * sol["Forecast", n + 1] + sol["ET", n + 1]
-	sol = list(solution = as.table(sol), parameter = c(alpha = alpha, beta = beta, ET0 = ET0, F0 = F0, X0 = X0), sign = "Holt\'s", period = 1)
-	class(sol) = "FORECAST"
-	return(sol)
-}
-
-forecast = function(x, period){
-	if(class(x) != "FORECAST" || period <= 0){
-		return(NULL)
-	}
-	if(x$sign == "Holt\'s"){
+	f = function(x, period){
 		param = x$parameter
 		x = x$solution
 		n = ncol(x) - 2
@@ -146,8 +143,23 @@ forecast = function(x, period){
 		sol = alpha * nowx + (1 - alpha) * nowf + period * nowET
 		names(sol) = NULL
 		return(sol)
-	}#else if(){}
-	else{
+	}
+	sol = list(solution = as.table(sol), parameter = c(alpha = alpha, beta = beta, ET0 = ET0, F0 = F0, X0 = X0), sign = "Holt\'s", period = 1, forecast_function = f)
+	class(sol) = "FORECAST"
+	return(sol)
+}
+
+forecast = function(x, period){
+	if(class(x) != "FORECAST" || period <= 0){
+		return(NULL)
+	}
+	if(!is.null(x$forecast_function)){
+		if(is.null(x$forecast_function.expression)){
+			return(x$forecast_function(x, period))
+		}else{
+			return(x$forecast_function(x, period, x$forecast_function.expression))
+		}
+	}else{
 		f = x$solution["Forecast", ]
 		f = subset(f, names(f) == "forecast")
 		if(length(f) < period){
@@ -247,16 +259,16 @@ make_regression = function(lm, var, range, ..., period = 1){
 	}
 	y = predict(lm, data)
 	x = vector()
-	for(i in 1:(length(range) - 1)){
+	for(i in 1:(length(range) - period)){
 		index = which(lm$model[[var]] == range[i])
 		if(length(index) == 0){
 			break
 		}
 		x = append(x, lm$model[index[1], 1])
 	}
-	if(length(x) == length(range) - 1){
+	if(length(x) == length(range) - period){
 		sol = matrix(ncol = length(y), nrow = 2, dimnames = list(c("x", "Forecast"), c(1:(length(y) - period), rep_len("forecast", period))))
-		sol["x", ] = c(x, NA)
+		sol["x", ] = c(x, rep_len(NA, period))
 		sol["Forecast", ] = y
 	}else{
 		sol = matrix(y, ncol = length(y), nrow = 1, dimnames = list(c("Forecast"), c(1:(length(y) - period), rep_len("forecast", period))))
@@ -449,7 +461,7 @@ seasonal_index = function(x, ...){
 	UseMethod("seasonal_index")
 }
 
-seasonal_index.CMA = function(x){
+seasonal_index.CMA = function(x, ...){
 	effect = x$x / x$average
 	tmp = 1:length(x$x)
 	ind = vector(length = x$period)
@@ -459,4 +471,79 @@ seasonal_index.CMA = function(x){
 	}
 	ind = ind / sum(ind) * x$period
 	return(ind)
+}
+
+seasonal_index.lm = function(x, period, ...){
+	if(class(x) != "lm"){
+		x = lm(x~c(1:length(x)))
+	}
+	predict = predict(x)
+	effect = x$model[[1]] / predict
+	tmp = 1:length(predict)
+	ind = vector(length = period)
+	for(i in 1:period){
+		y = effect[tmp %% period == i %% period]
+		ind[i] = mean(y, na.rm = TRUE)
+	}
+	ind = ind / sum(ind) * period
+	return(ind)
+}
+
+seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential"), ...){
+	x = data_filt(x)
+	index = match.arg(index)
+	forecast.way = match.arg(forecast.way)
+	y = 0
+	if(index == "CMA"){
+		y = centered_moving_average(x, season.period)
+	}else if(index == "lm"){
+		y = lm(x~c(1:length(x)))
+	}
+	season = seasonal_index(y, period = season.period)
+	x.season_dropped = x / season
+	o = 0
+	f = NULL
+	f.e = NULL
+	if(forecast.way == "lm"){ #use of FORECASTed lm object is somehow BAD choice
+		tmp = 1:length(x)
+		r = lm(x.season_dropped ~ tmp)
+		df = data.frame(tmp = 1 : (length(x) + season.period))
+		o = predict(r, df)
+		f.e = list(coe = r$coefficients, season = season)
+		names(f.e$coe) = c("intercept", "x")
+		f = function(x, period, expression){
+			n = length(na.omit(x$solution["x", ]))
+			return((expression$coe["x"] * (n + period) + expression$coe["intercept"]) * ifelse((n + period) %% x$period == 0, expression$season[x$period], expression$season[(n + period) %% x$period]))
+		}
+	}else{
+		obj = NULL
+		if(forecast.way == "Holt\'s"){
+			obj = holt_exponential_smoothing(x, season.period, ...)
+		}else if(forecast.way == "average"){
+			obj = average_value(x)
+		}else if(forecast.way == "moving"){
+			obj = moving_average(x, ...)
+		}else if(forecast.way == "exponential"){
+			obj = exponential_smoothing(x, ...)
+		}
+		f.e = obj
+		f = function(x, period, expression){
+			return(forecast(expression, period) * ifelse((n + period) %% x$period == 0, expression$season[x$period], expression$season((n + period) %% x$period)))
+		}
+		o = obj$solution["Forecast", ]
+		o = o[which(names(o) == "1"):length(o)]
+		o = subset(o, names(o) != "forecast")
+		o = append(o, mapply(forecast, x = obj, period = 1:season.period))
+	}
+	o_ori = o
+	o = o * season
+	sol = matrix(ncol = length(o), nrow = 5, dimnames = list(c("x", "Forecast", "deseasonal", "Forecast.deseasonal", "seasonal.index"), c(1:(length(o) - season.period), rep_len("forecast", season.period))))
+	sol["x", ] = c(x, rep_len(NA, season.period))
+	sol["Forecast", ] = o
+	sol["deseasonal", ] = c(x.season_dropped, rep_len(NA, season.period))
+	sol["Forecast.deseasonal", ] = o_ori
+	sol["seasonal.index", ] = rep_len(season, length(o))
+	sol = list(solution = as.table(sol), parameter = c(index = index, forecast.way = forecast.way), sign = "Seasonal", period = season.period, forecast_function = f, forecast_function.expression = f.e)
+	class(sol) = "FORECAST"
+	return(sol)
 }
