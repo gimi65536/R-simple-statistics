@@ -118,7 +118,7 @@ F0 = mean(x) 假定第零期的預測值
 X0 = F0 假定第零期的資料  
 
 ### forecast
-算出n期後預測值，對Holt's exponential smoothing方法與季節性lm而言是算出來的n期後預測值，對其他方法而言單純是印出預測期間內的第幾期預測值。**注意自製lm趨勢物件是無法這樣預測的，請自行使用predict**  
+算出n期後預測值，對Holt's exponential smoothing方法與FORECASTed lm而言是算出來的n期後預測值，對其他方法而言單純是印出預測期間內的第幾期預測值  
 x 趨勢物件  
 period 期數  
 
@@ -132,8 +132,10 @@ color = c("black", "red", "blue", "green", "pink") 要使用的顏色，自動�
 lm 迴歸物件，也就是內建函數lm輸出的物件，"lm"型態  
 var 會更動的自變數「名稱」  
 range 自變數的值  
-(...) 輸入其他固定的自變數的值  
+(...) 輸入其他固定的自變數的值，若df為NULL時方才調用  
+df = NULL 輸入其他自變數的值  
 period = 1 向前預測幾期  
+front.sep = 1 在使用forecast函數時，自變數會當成"range的最後一個元素" + front.sep * period以進行預測  
 
 ### make_package
 把資料轉成趨勢物件  

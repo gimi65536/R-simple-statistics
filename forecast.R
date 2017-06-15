@@ -28,9 +28,9 @@ summary.FORECAST = function(x, newline = FALSE, ...){
 		}
 	}else if(sol$sign == "Linear Regression"){
 		if(newline){
-			sol$sign = paste("Linear\nRegression\n", sol$parameter$lm.call)
+			sol$sign = paste("Linear\nRegression\n", sol$forecast_function.expression$lm$lm.call)
 		}else{
-			sol$sign = paste("Linear Regression", sol$parameter$lm.call)
+			sol$sign = paste("Linear Regression", sol$forecast_function.expression$lm$lm.call)
 		}
 	}else if(sol$sign == "User-defined package"){
 		if(newline){
@@ -245,18 +245,22 @@ draw_time_series = function(..., color = c("black", "red", "blue", "green", "pin
 	return(g)
 }
 
-make_regression = function(lm, var, range, ..., period = 1){
-	data = data.frame(...)
+make_regression = function(lm, var, range, ..., df = NULL, period = 1, front.sep = 1){
+	if(is.null(df)){
+		data = data.frame(...)
+	}else{
+		data = df
+	}
 	if(length(data) > 0){
-		l = length(range) - 1
-		v = data[1, ]
-		for(i in 1:l){
-			data = rbind(data, v)
-		}
+		l = length(range)
+		data = as.data.frame(mapply(rep_len, data, l))
 		data[[var]] = range
 	}else{
-		eval(parse(text = paste("data = data.frame(", shQuote(var), " = range)")))
+		data = data.frame(range)
+		names(data) = var
 	}
+	#now "var" is in the last column
+	f.e = list(other.var = data[1, -length(data)], lm = lm, front.sep = front.sep, var.name = var, from = range[length(range)])
 	y = predict(lm, data)
 	x = vector()
 	for(i in 1:(length(range) - period)){
@@ -273,7 +277,18 @@ make_regression = function(lm, var, range, ..., period = 1){
 	}else{
 		sol = matrix(y, ncol = length(y), nrow = 1, dimnames = list(c("Forecast"), c(1:(length(y) - period), rep_len("forecast", period))))
 	}
-	sol = list(solution = as.table(sol), parameter = lm, sign = "Linear Regression", period = period)
+	f = function(x, period, expression){
+		lm = expression$lm
+		data = expression$other.var
+		if(nrow(data) < 1){
+			data = data.frame(expression$from + expression$front.sep * period)
+			names(data) = expression$var.name
+		}else{
+			data[[expression$var.name]] = expression$from + expression$front.sep * period
+		}
+		return(predict(lm, data))
+	}
+	sol = list(solution = as.table(sol), parameter = list(var.name = var, range = range, front.sep = front.sep), sign = "Linear Regression", period = period, forecast_function = f, forecast_function.expression = f.e)
 	class(sol) = "FORECAST"
 	return(sol)
 }
@@ -503,7 +518,7 @@ seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.wa
 	o = 0
 	f = NULL
 	f.e = NULL
-	if(forecast.way == "lm"){ #use of FORECASTed lm object is somehow BAD choice
+	if(forecast.way == "lm"){ #use of FORECASTed lm object is somehow BAD choice when I wrote these code... maybe now is better
 		tmp = 1:length(x)
 		r = lm(x.season_dropped ~ tmp)
 		df = data.frame(tmp = 1 : (length(x) + season.period))
