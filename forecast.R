@@ -503,17 +503,25 @@ seasonal_index.lm = function(x, period, ...){
 	return(ind)
 }
 
-seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential"), ...){
+seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential"), ..., lm.model = NULL, pregive.index = NULL){
 	x = data_filt(x)
-	index = match.arg(index)
 	forecast.way = match.arg(forecast.way)
-	y = 0
-	if(index == "CMA"){
-		y = centered_moving_average(x, season.period)
-	}else if(index == "lm"){
-		y = lm(x~c(1:length(x)))
+	season = NULL
+	if(is.null(pregive.index)){
+		index = match.arg(index)
+		y = 0
+		if(index == "CMA"){
+			y = centered_moving_average(x, season.period)
+		}else if(index == "lm"){
+			if(is.null(lm.model)){
+				y = lm(x~c(1:length(x)))
+			}
+		}
+		season = seasonal_index(y, period = season.period)
+	}else{
+		season = rep_len(pregive.index, season.period)
+		season = season / sum(season) * season.period
 	}
-	season = seasonal_index(y, period = season.period)
 	x.season_dropped = x / season
 	o = 0
 	f = NULL
