@@ -46,9 +46,9 @@ summary.FORECAST = function(x, newline = FALSE, ...){
 		}
 	}else if(sol$sign == "Seasonal"){
 		if(newline){
-			sol$sign = paste("Seasonal\nforecasting\nwith", sol["index"], "\nand", sol["forecast.way"], "\nfor period =", sol$period)
+			sol$sign = paste("Seasonal\nforecasting\nwith", sol$parameter["index"], "\nand", sol$parameter["forecast.way"], "\nfor period =", sol$period)
 		}else{
-			sol$sign = paste("Seasonal forecasting with", sol["index"], "and", sol["forecast.way"], "for period =", sol$period)
+			sol$sign = paste("Seasonal forecasting with", sol$parameter["index"], "and", sol$parameter["forecast.way"], "for period =", sol$period)
 		}
 	}else if(sol$sign == "Autoregression"){
 		if(newline){
@@ -303,11 +303,11 @@ make_package = function(y, x = NULL, period = 1){
 	if(is.null(x)){
 		sol = matrix(y, ncol = length(y), nrow = 1, dimnames = list(c("Forecast"), c(1:(length(y) - period), rep_len("forecast", period))))
 	}else{
-		y_cover = length(y) - 1
+		y_cover = length(y) - period
 		n = length(x)
 		ncol = n
 		start = 1
-		x = c(x, NA)
+		x = c(x, rep_len(NA, period))
 		if(y_cover > ncol){
 			ncol = y_cover
 			start = start - (y_cover - n)
@@ -315,7 +315,7 @@ make_package = function(y, x = NULL, period = 1){
 		}else{
 			y = c(rep_len(NA, n - y_cover), y)
 		}
-		sol = matrix(c(x, y), byrow = TRUE, ncol = ncol + 1, nrow = 2, dimnames = list(c("x", "Forecast"), c(start:(start + ncol - period), rep_len("forecast", period))))
+		sol = matrix(c(x, y), byrow = TRUE, ncol = ncol + period, nrow = 2, dimnames = list(c("x", "Forecast"), c(start + (0:(ncol - 1)), rep_len("forecast", period))))
 	}
 	sol = list(solution = as.table(sol), parameter = NULL, sign = "User-defined package", period = period)
 	class(sol) = "FORECAST"
@@ -424,6 +424,7 @@ compare_forecast = function(...){
 	if(len > length(ori)){
 		len = length(ori)
 	}
+	#print(len)
 	sol = matrix(nrow = length(l), ncol = 5, dimnames = list(names(l), c("ME", "MPE", "MAD", "MSE", "MAPE")))
 	sol[, 1] = sapply(l, mean_error,                     period = len, ori = ori)
 	sol[, 2] = sapply(l, mean_percentage_error,          period = len, ori = ori)
