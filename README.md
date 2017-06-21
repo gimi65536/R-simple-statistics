@@ -118,7 +118,7 @@ F0 = mean(x) 假定第零期的預測值
 X0 = F0 假定第零期的資料  
 
 ### forecast
-算出n期後預測值，對Holt's exponential smoothing方法與季節性lm而言是算出來的n期後預測值，對其他方法而言單純是印出預測期間內的第幾期預測值。**注意自製lm趨勢物件是無法這樣預測的，請自行使用predict**  
+算出n期後預測值，對於有指定預測函數的預測方法而言是算出來的n期後預測值，對其他方法而言單純是印出預測期間內的第幾期預測值  
 x 趨勢物件  
 period 期數  
 
@@ -132,8 +132,10 @@ color = c("black", "red", "blue", "green", "pink") 要使用的顏色，自動�
 lm 迴歸物件，也就是內建函數lm輸出的物件，"lm"型態  
 var 會更動的自變數「名稱」  
 range 自變數的值  
-(...) 輸入其他固定的自變數的值  
+(...) 輸入其他固定的自變數的值，若df為NULL時方才調用  
+df = NULL 輸入其他自變數的值  
 period = 1 向前預測幾期  
+front.sep = 1 在使用forecast函數時，自變數會當成"range的最後一個元素" + front.sep * period以進行預測  
 
 ### make_package
 把資料轉成趨勢物件  
@@ -189,11 +191,23 @@ x 給定lm物件
 period 期數(因為lm物件不自帶period參數)  
 
 ### seasonal_effect
-利用季節性因子做出預測。**需要注意的是第一步驟與第二步驟使用的lm都是簡單線性迴歸，若認為後者不該使用簡單線性迴歸，則請提取回傳值當中，$solution["deseasonal", ]的資料，手動。**  
+利用季節性因子做出預測。需要注意的是第一步驟(不指定lm.model)與第二步驟使用的lm都是簡單線性迴歸，**若認為後者不該使用簡單線性迴歸，則請提取回傳值當中，$solution["deseasonal", ]的資料，手動。**  
 x 給定資料  
 season.period 季節大小  
-index = c("CMA", "lm") 用什麼方法算出季節性因子  
+index = c("CMA", "lm") 在不欽定季節性因子的狀況下，要用什麼方法算出季節性因子  
 forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential") 要如何預測後幾期的解季節性資料預測值  
 (...) 在預測後幾期時所要運用的參數  
+lm.model = NULL 若index == "lm"而且lm.model被指派一個lm物件，那麼就使用這個物件計算季節性因子。這個lm物件的自變數樣本要按照時間軸順序給定  
+pregive.index = NULL 若此值不為NULL，則**直接使用**這個資料的正規化形式，作為季節性因子
+
+### cyclic_index
+算出長期趨勢因子  
+x 給定資料  
+
+### autoregression
+算出自迴歸模型，使用R內建的ar.ols函數  
+x 給定資料  
+max.period 最多要看幾期之前的資料  
+period = 0 向前預測幾期  
 
 # 待補充...

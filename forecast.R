@@ -28,9 +28,9 @@ summary.FORECAST = function(x, newline = FALSE, ...){
 		}
 	}else if(sol$sign == "Linear Regression"){
 		if(newline){
-			sol$sign = paste("Linear\nRegression\n", sol$parameter$lm.call)
+			sol$sign = paste("Linear\nRegression\n", sol$forecast_function.expression$lm$lm.call)
 		}else{
-			sol$sign = paste("Linear Regression", sol$parameter$lm.call)
+			sol$sign = paste("Linear Regression", sol$forecast_function.expression$lm$lm.call)
 		}
 	}else if(sol$sign == "User-defined package"){
 		if(newline){
@@ -49,6 +49,12 @@ summary.FORECAST = function(x, newline = FALSE, ...){
 			sol$sign = paste("Seasonal\nforecasting\nwith", sol["index"], "\nand", sol["forecast.way"], "\nfor period =", sol$period)
 		}else{
 			sol$sign = paste("Seasonal forecasting with", sol["index"], "and", sol["forecast.way"], "for period =", sol$period)
+		}
+	}else if(sol$sign == "Autoregression"){
+		if(newline){
+			sol$sign = paste("Autoregression\nwith", sol$parameter$model$order, "\norder")
+		}else{
+			sol$sign = paste("Autoregression with", sol$parameter$model$order, "order")
 		}
 	}
 	names(sol)[3] = "type_of_forecasting"
@@ -245,18 +251,22 @@ draw_time_series = function(..., color = c("black", "red", "blue", "green", "pin
 	return(g)
 }
 
-make_regression = function(lm, var, range, ..., period = 1){
-	data = data.frame(...)
+make_regression = function(lm, var, range, ..., df = NULL, period = 1, front.sep = 1){
+	if(is.null(df)){
+		data = data.frame(...)
+	}else{
+		data = df
+	}
 	if(length(data) > 0){
-		l = length(range) - 1
-		v = data[1, ]
-		for(i in 1:l){
-			data = rbind(data, v)
-		}
+		l = length(range)
+		data = as.data.frame(mapply(rep_len, data, l))
 		data[[var]] = range
 	}else{
-		eval(parse(text = paste("data = data.frame(", shQuote(var), " = range)")))
+		data = data.frame(range)
+		names(data) = var
 	}
+	#now "var" is in the last column
+	f.e = list(other.var = data[1, -length(data)], lm = lm, front.sep = front.sep, var.name = var, from = range[length(range)])
 	y = predict(lm, data)
 	x = vector()
 	for(i in 1:(length(range) - period)){
@@ -273,7 +283,18 @@ make_regression = function(lm, var, range, ..., period = 1){
 	}else{
 		sol = matrix(y, ncol = length(y), nrow = 1, dimnames = list(c("Forecast"), c(1:(length(y) - period), rep_len("forecast", period))))
 	}
-	sol = list(solution = as.table(sol), parameter = lm, sign = "Linear Regression", period = period)
+	f = function(x, period, expression){
+		lm = expression$lm
+		data = expression$other.var
+		if(nrow(data) < 1){
+			data = data.frame(expression$from + expression$front.sep * period)
+			names(data) = expression$var.name
+		}else{
+			data[[expression$var.name]] = expression$from + expression$front.sep * period
+		}
+		return(predict(lm, data))
+	}
+	sol = list(solution = as.table(sol), parameter = list(var.name = var, range = range, front.sep = front.sep), sign = "Linear Regression", period = period, forecast_function = f, forecast_function.expression = f.e)
 	class(sol) = "FORECAST"
 	return(sol)
 }
@@ -488,22 +509,32 @@ seasonal_index.lm = function(x, period, ...){
 	return(ind)
 }
 
-seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential"), ...){
+seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential"), ..., lm.model = NULL, pregive.index = NULL){
 	x = data_filt(x)
-	index = match.arg(index)
 	forecast.way = match.arg(forecast.way)
-	y = 0
-	if(index == "CMA"){
-		y = centered_moving_average(x, season.period)
-	}else if(index == "lm"){
-		y = lm(x~c(1:length(x)))
+	season = NULL
+	if(is.null(pregive.index)){
+		index = match.arg(index)
+		y = 0
+		if(index == "CMA"){
+			y = centered_moving_average(x, season.period)
+		}else if(index == "lm"){
+			if(is.null(lm.model)){
+				y = lm(x~c(1:length(x)))
+			}else{
+				y = lm.model
+			}
+		}
+		season = seasonal_index(y, period = season.period)
+	}else{
+		season = rep_len(pregive.index, season.period)
+		season = season / sum(season) * season.period
 	}
-	season = seasonal_index(y, period = season.period)
 	x.season_dropped = x / season
 	o = 0
 	f = NULL
 	f.e = NULL
-	if(forecast.way == "lm"){ #use of FORECASTed lm object is somehow BAD choice
+	if(forecast.way == "lm"){ #use of FORECASTed lm object is somehow BAD choice when I wrote these code... maybe now is better
 		tmp = 1:length(x)
 		r = lm(x.season_dropped ~ tmp)
 		df = data.frame(tmp = 1 : (length(x) + season.period))
@@ -543,6 +574,41 @@ seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.wa
 	sol["Forecast.deseasonal", ] = o_ori
 	sol["seasonal.index", ] = rep_len(season, length(o))
 	sol = list(solution = as.table(sol), parameter = c(index = index, forecast.way = forecast.way), sign = "Seasonal", period = season.period, forecast_function = f, forecast_function.expression = f.e)
+	class(sol) = "FORECAST"
+	return(sol)
+}
+
+cyclic_index = function(x){
+	n = length(x)
+	y = 1:n
+	lm = lm(x ~ y)
+	r = predict(lm)
+	sol = x / r
+	return(sol)
+}
+
+autoregression = function(x, max.period, period = 0){
+	x = data_filt(x)
+	r = ar.ols(x, order.max = max.period, demean = FALSE, intercept = TRUE)
+	order = r$order
+	cof = r$ar[, 1, 1]
+	sol = matrix(ncol = length(x) + period, nrow = 2, dimnames = list(c("x", "Forecast"), c(1:(length(x) + period))))
+	sol["x", ] = c(x, rep_len(NA, period))
+	for(i in 1:(length(x) - order)){
+		sol["Forecast", order + i] = predict(r, x[i : (i + order - 1)])$pred[1]
+	}
+	if(period > 0){
+		sol["Forecast", length(x) + (1 : period)] = predict(r, n.ahead = period)$pred
+	}
+	f = function(x, period){
+		r = x$parameter$model
+		x = x$solution["x", ]
+		p = predict(r, n.ahead = period)
+		sol = tail(p$pred, 1)
+		names(sol) = NULL
+		return(sol)
+	}
+	sol = list(solution = as.table(sol), parameter = list(x = x, max.period = max.period, model = r), period = period, sign = "Autoregression", forecast_function = f)
 	class(sol) = "FORECAST"
 	return(sol)
 }
