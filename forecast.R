@@ -50,6 +50,12 @@ summary.FORECAST = function(x, newline = FALSE, ...){
 		}else{
 			sol$sign = paste("Seasonal forecasting with", sol["index"], "and", sol["forecast.way"], "for period =", sol$period)
 		}
+	}else if(sol$sign == "Autoregression"){
+		if(newline){
+			sol$sign = paste("Autoregression\nwith", sol$parameter$model$order, "\norder")
+		}else{
+			sol$sign = paste("Autoregression with", sol$parameter$model$order, "order")
+		}
 	}
 	names(sol)[3] = "type_of_forecasting"
 	names(sol)[4] = "forecasting period"
@@ -515,6 +521,8 @@ seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.wa
 		}else if(index == "lm"){
 			if(is.null(lm.model)){
 				y = lm(x~c(1:length(x)))
+			}else{
+				y = lm.model
 			}
 		}
 		season = seasonal_index(y, period = season.period)
@@ -566,6 +574,41 @@ seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.wa
 	sol["Forecast.deseasonal", ] = o_ori
 	sol["seasonal.index", ] = rep_len(season, length(o))
 	sol = list(solution = as.table(sol), parameter = c(index = index, forecast.way = forecast.way), sign = "Seasonal", period = season.period, forecast_function = f, forecast_function.expression = f.e)
+	class(sol) = "FORECAST"
+	return(sol)
+}
+
+cyclic_index = function(x){
+	n = length(x)
+	y = 1:n
+	lm = lm(x ~ y)
+	r = predict(lm)
+	sol = x / r
+	return(sol)
+}
+
+autoregression = function(x, max.period, period = 0){
+	x = data_filt(x)
+	r = ar.ols(x, order.max = max.period, demean = FALSE, intercept = TRUE)
+	order = r$order
+	cof = r$ar[, 1, 1]
+	sol = matrix(ncol = length(x) + period, nrow = 2, dimnames = list(c("x", "Forecast"), c(1:(length(x) + period))))
+	sol["x", ] = c(x, rep_len(NA, period))
+	for(i in 1:(length(x) - order)){
+		sol["Forecast", order + i] = predict(r, x[i : (i + order - 1)])$pred[1]
+	}
+	if(period > 0){
+		sol["Forecast", length(x) + (1 : period)] = predict(r, n.ahead = period)$pred
+	}
+	f = function(x, period){
+		r = x$parameter$model
+		x = x$solution["x", ]
+		p = predict(r, n.ahead = period)
+		sol = tail(p$pred, 1)
+		names(sol) = NULL
+		return(sol)
+	}
+	sol = list(solution = as.table(sol), parameter = list(x = x, max.period = max.period, model = r), period = period, sign = "Autoregression", forecast_function = f)
 	class(sol) = "FORECAST"
 	return(sol)
 }

@@ -118,7 +118,7 @@ F0 = mean(x) 假定第零期的預測值
 X0 = F0 假定第零期的資料  
 
 ### forecast
-算出n期後預測值，對Holt's exponential smoothing方法與FORECASTed lm而言是算出來的n期後預測值，對其他方法而言單純是印出預測期間內的第幾期預測值  
+算出n期後預測值，對於有指定預測函數的預測方法而言是算出來的n期後預測值，對其他方法而言單純是印出預測期間內的第幾期預測值  
 x 趨勢物件  
 period 期數  
 
@@ -198,6 +198,16 @@ index = c("CMA", "lm") 在不欽定季節性因子的狀況下，要用什麼方
 forecast.way = c("Holt\'s", "lm", "average", "moving", "exponential") 要如何預測後幾期的解季節性資料預測值  
 (...) 在預測後幾期時所要運用的參數  
 lm.model = NULL 若index == "lm"而且lm.model被指派一個lm物件，那麼就使用這個物件計算季節性因子。這個lm物件的自變數樣本要按照時間軸順序給定  
-pregive.index = NULL 若此值不為NULL，則**直接使用**這個資料的正規化形式，作為季節性因子  
+pregive.index = NULL 若此值不為NULL，則**直接使用**這個資料的正規化形式，作為季節性因子
+
+### cyclic_index
+算出長期趨勢因子  
+x 給定資料  
+
+### autoregression
+算出自迴歸模型，使用R內建的ar.ols函數  
+x 給定資料  
+max.period 最多要看幾期之前的資料  
+period = 0 向前預測幾期  
 
 # 待補充...
