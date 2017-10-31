@@ -4,6 +4,7 @@
 ## ANOVA.R  
 **這個檔案中所有的函數都需要在輸出的地方進行優化**    
 **這個檔案充斥許多名詞錯誤與麻煩的寫法，有空的話必須大幅改寫**  
+**不過我沒空** 
 
 ### ANOVA.oneway
 One way ANOVA  
@@ -39,6 +40,7 @@ balance = true 每個treatment內的元素數量是否相等。*目前是閒置�
 index = NULL為資料中要檢定的部分，若是NULL則為全部資料  
 
 ## chi.R
+**chi-square分析** 
 
 ### godness_fit
 檢測觀測結果與期望值是否相等  
@@ -209,5 +211,11 @@ x 給定資料
 x 給定資料  
 max.period 最多要看幾期之前的資料  
 period = 0 向前預測幾期  
-
+ 
+## lm.R 
+**迴歸分析** 
+ 
+## nomother.R 
+**無母數分析（nonparametric statistics）** 
+ 
 # 待補充...
