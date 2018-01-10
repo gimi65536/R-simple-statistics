@@ -564,7 +564,7 @@ seasonal_effect = function(x, season.period, index = c("CMA", "lm"), forecast.wa
 		o = obj$solution["Forecast", ]
 		o = o[which(names(o) == "1"):length(o)]
 		o = subset(o, names(o) != "forecast")
-		o = append(o, mapply(forecast, x = obj, period = 1:season.period))
+		o = append(o, mapply(forecast, MoreArgs = list(x = obj), period = 1:season.period))
 	}
 	o_ori = o
 	o = o * season
